@@ -3,18 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Donation Site</title>
+  <title>Donation Portal</title>
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      background: #f9f9f9;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
     }
     input, button {
-      margin: 10px 0;
+      width: 100%;
       padding: 10px;
-      font-size: 16px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #45a049;
     }
   </style>
 </head>
@@ -23,13 +50,24 @@
   <p>Enter your purchase code and message to submit your donation!</p>
 
   <form id="donationForm">
-    <label for="code">Purchase Code:</label><br>
-    <input type="text" id="code" required><br>
+    <label for="code">Purchase Code:</label>
+    <input type="text" id="code" placeholder="Enter your code" required>
 
-    <label for="message">Message:</label><br>
-    <input type="text" id="message" required><br>
+    <label for="message">Message:</label>
+    <input type="text" id="message" placeholder="Enter your message" required>
 
-    <button type="submit">Submit</button>
+    <button type="submit">Submit Donation</button>
+  </form>
+
+  <h2>Add a Manual Code</h2>
+  <form id="addCodeForm">
+    <label for="newCode">New Code:</label>
+    <input type="text" id="newCode" placeholder="Enter new code" required>
+
+    <label for="codeAmount">Amount:</label>
+    <input type="number" id="codeAmount" placeholder="Enter amount" required>
+
+    <button type="submit">Add Code</button>
   </form>
 
   <script>
@@ -47,50 +85,35 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Generate a unique code
-    function generateCode(length = 8) {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
-    }
-
-    // Store generated code in the database
-    async function storeCode(code, amount) {
+    // Function to validate a code
+    async function validateCode(code) {
       const codeRef = firebase.database().ref(`codes/${code}`);
-      await codeRef.set({
-        amount,
-        isUsed: false,
-        timestamp: new Date().toISOString()
-      });
-      console.log(`Code ${code} stored successfully.`);
-    }
-
-    // Validate the entered code
-    async function validateCode(enteredCode) {
-      const codeRef = firebase.database().ref(`codes/${enteredCode}`);
       const snapshot = await codeRef.get();
       if (!snapshot.exists()) {
         return { valid: false, message: "Invalid code." };
       }
       const codeData = snapshot.val();
-      if (codeData.isUsed) {
+      if (codeData.used) {
         return { valid: false, message: "This code has already been used." };
       }
-      return { valid: true, data: codeData };
+      return { valid: true };
     }
 
-    // Mark code as used
-    async function markCodeAsUsed(enteredCode) {
-      const codeRef = firebase.database().ref(`codes/${enteredCode}`);
-      await codeRef.update({ isUsed: true });
+    // Function to mark a code as used
+    async function markCodeAsUsed(code) {
+      const codeRef = firebase.database().ref(`codes/${code}`);
+      await codeRef.update({ used: true });
     }
 
-    // Form submission
-    const form = document.getElementById('donationForm');
-    form.addEventListener('submit', async (e) => {
+    // Function to store a new manual code
+    async function storeCode(newCode, amount) {
+      const codeRef = firebase.database().ref(`codes/${newCode}`);
+      await codeRef.set({ amount, used: false });
+    }
+
+    // Handle donation submission
+    const donationForm = document.getElementById('donationForm');
+    donationForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const code = document.getElementById('code').value.trim();
@@ -102,38 +125,50 @@
       }
 
       try {
-        // Validate the code
         const validation = await validateCode(code);
         if (!validation.valid) {
           alert(validation.message);
           return;
         }
 
-        // Save the donation
         const donationRef = firebase.database().ref(`donations/${code}`);
         await donationRef.set({
           message,
           timestamp: new Date().toISOString()
         });
 
-        // Mark the code as used
         await markCodeAsUsed(code);
 
         alert('Thank you for your donation!');
-        form.reset();
+        donationForm.reset();
       } catch (error) {
         console.error('Error saving donation:', error);
         alert('Failed to submit your donation. Please try again.');
       }
     });
 
-    // Example: Generate and store a few test codes
-    (async () => {
-      for (let i = 0; i < 5; i++) {
-        const code = generateCode();
-        await storeCode(code, Math.floor(Math.random() * 100) + 1); // Random amount
+    // Handle manual code addition
+    const addCodeForm = document.getElementById('addCodeForm');
+    addCodeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newCode = document.getElementById('newCode').value.trim();
+      const amount = parseInt(document.getElementById('codeAmount').value, 10);
+
+      if (!newCode || isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid code and amount.');
+        return;
       }
-    })();
+
+      try {
+        await storeCode(newCode, amount);
+        alert(`Code ${newCode} added successfully with amount $${amount}`);
+        addCodeForm.reset();
+      } catch (error) {
+        console.error('Error adding code:', error);
+        alert('Failed to add the code. Please try again.');
+      }
+    });
   </script>
 </body>
 </html>
