@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Donation Portal</title>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
+  <!-- Firebase UMD scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -42,6 +44,9 @@
     }
     button:hover {
       background-color: #45a049;
+    }
+    #addCodeForm {
+      display: none; /* Hidden by default */
     }
   </style>
 </head>
@@ -84,34 +89,44 @@
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
 
-    // Function to validate a code
-    async function validateCode(code) {
-      const codeRef = firebase.database().ref(`codes/${code}`);
-      const snapshot = await codeRef.get();
-      if (!snapshot.exists()) {
-        return { valid: false, message: "Invalid code." };
+    // Elements
+    const addCodeForm = document.getElementById('addCodeForm');
+
+    // Check authentication state
+    auth.onAuthStateChanged((user) => {
+      if (user && user.email === "admin4324@admin.com") {
+        addCodeForm.style.display = "block";
+      } else {
+        addCodeForm.style.display = "none";
       }
-      const codeData = snapshot.val();
-      if (codeData.used) {
-        return { valid: false, message: "This code has already been used." };
+    });
+
+    // Manual code addition
+    addCodeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newCode = document.getElementById('newCode').value.trim();
+      const amount = parseInt(document.getElementById('codeAmount').value, 10);
+
+      if (!newCode || isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid code and amount.');
+        return;
       }
-      return { valid: true };
-    }
 
-    // Function to mark a code as used
-    async function markCodeAsUsed(code) {
-      const codeRef = firebase.database().ref(`codes/${code}`);
-      await codeRef.update({ used: true });
-    }
+      try {
+        const codeRef = db.ref(`codes/${newCode}`);
+        await codeRef.set({ amount, used: false });
+        alert(`Code ${newCode} added successfully with amount $${amount}`);
+        addCodeForm.reset();
+      } catch (error) {
+        console.error('Error adding code:', error);
+        alert('Failed to add the code. Please try again.');
+      }
+    });
 
-    // Function to store a new manual code
-    async function storeCode(newCode, amount) {
-      const codeRef = firebase.database().ref(`codes/${newCode}`);
-      await codeRef.set({ amount, used: false });
-    }
-
-    // Handle donation submission
+    // Donation submission
     const donationForm = document.getElementById('donationForm');
     donationForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -125,48 +140,28 @@
       }
 
       try {
-        const validation = await validateCode(code);
-        if (!validation.valid) {
-          alert(validation.message);
+        const codeRef = db.ref(`codes/${code}`);
+        const snapshot = await codeRef.get();
+
+        if (!snapshot.exists() || snapshot.val().used) {
+          alert('Invalid or already used code.');
           return;
         }
 
-        const donationRef = firebase.database().ref(`donations/${code}`);
-        await donationRef.set({
+        const donationsRef = db.ref('donations').push();
+        await donationsRef.set({
+          code,
           message,
           timestamp: new Date().toISOString()
         });
 
-        await markCodeAsUsed(code);
+        await codeRef.update({ used: true });
 
         alert('Thank you for your donation!');
         donationForm.reset();
       } catch (error) {
         console.error('Error saving donation:', error);
         alert('Failed to submit your donation. Please try again.');
-      }
-    });
-
-    // Handle manual code addition
-    const addCodeForm = document.getElementById('addCodeForm');
-    addCodeForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const newCode = document.getElementById('newCode').value.trim();
-      const amount = parseInt(document.getElementById('codeAmount').value, 10);
-
-      if (!newCode || isNaN(amount) || amount <= 0) {
-        alert('Please enter a valid code and amount.');
-        return;
-      }
-
-      try {
-        await storeCode(newCode, amount);
-        alert(`Code ${newCode} added successfully with amount $${amount}`);
-        addCodeForm.reset();
-      } catch (error) {
-        console.error('Error adding code:', error);
-        alert('Failed to add the code. Please try again.');
       }
     });
   </script>
