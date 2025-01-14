@@ -64,6 +64,26 @@
     <button type="submit">Submit Donation</button>
   </form>
 
+    <!-- Admin Email Entry -->
+  <h2>Admin Login</h2>
+  <form id="emailEntry">
+    <label for="adminEmail">Enter Admin Email:</label>
+    <input type="email" id="adminEmail" placeholder="Enter your email" required>
+    <button type="submit">Login</button>
+  </form>
+
+  <!-- Manual Code Addition Form -->
+  <h2>Manual Code Addition</h2>
+  <form id="addCodeForm">
+    <label for="newCode">New Code:</label>
+    <input type="text" id="newCode" placeholder="Enter new code" required>
+
+    <label for="codeAmount">Amount:</label>
+    <input type="number" id="codeAmount" placeholder="Enter amount" required>
+
+    <button type="submit">Add Code</button>
+  </form>
+
   <script>
     // Firebase configuration
     const firebaseConfig = {
