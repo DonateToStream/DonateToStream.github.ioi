@@ -1,39 +1,78 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enter Code</title>
+  <title>Donation Site</title>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h3>Enter Your Code</h3>
-  <form id="codeForm">
-    <input type="text" id="codeInput" placeholder="Enter your code" required>
+  <h1>Donation Portal</h1>
+  <p>Enter your purchase code and message to submit your donation!</p>
+
+  <form id="donationForm">
+    <label for="code">Purchase Code:</label><br>
+    <input type="text" id="code" required><br>
+
+    <label for="message">Message:</label><br>
+    <input type="text" id="message" required><br>
+
     <button type="submit">Submit</button>
   </form>
 
-  <p id="responseMessage"></p>
-
   <script>
-    document.getElementById("codeForm").addEventListener("submit", function(event) {
-      event.preventDefault();
-      const code = document.getElementById("codeInput").value;
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDsp-t5t7djT1fBxpmIg96DPDVuQqTeslY",
+      authDomain: "donations-606e1.firebaseapp.com",
+      databaseURL: "https://donations-606e1-default-rtdb.firebaseio.com",
+      projectId: "donations-606e1",
+      messagingSenderId: "887767168841",
+      appId: "1:887767168841:web:e98a6d07cd2e80a3730c98"
+    };
 
-      // Send the code to your Python backend
-      fetch('/sendToOBS', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code: code })
-      })
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById("responseMessage").innerText = data.message;
-      })
-      .catch(error => {
-        document.getElementById("responseMessage").innerText = "Error: " + error;
-      });
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Form submission
+    const form = document.getElementById('donationForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const code = document.getElementById('code').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      if (!code || !message) {
+        alert('Please enter a valid code and message.');
+        return;
+      }
+
+      try {
+        const donationRef = firebase.database().ref(`donations/${code}`);
+        await donationRef.set({
+          message,
+          timestamp: new Date().toISOString()
+        });
+        alert('Thank you for your donation!');
+        form.reset();
+      } catch (error) {
+        console.error('Error saving donation:', error);
+        alert('Failed to submit your donation. Please try again.');
+      }
     });
   </script>
 </body>
