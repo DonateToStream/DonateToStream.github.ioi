@@ -44,17 +44,17 @@
     button:hover {
       background-color: #45a049;
     }
-    #addCodeForm, #emailEntry {
-      display: none; /* Initially hidden */
-    }
   </style>
 </head>
 <body>
   <h1>Donation Portal</h1>
-  <p>Enter your purchase code and message to submit your donation!</p>
+  <p>Enter your Twitch username, purchase code, and message to submit your donation!</p>
 
   <!-- Donation Form -->
   <form id="donationForm">
+    <label for="username">Twitch Username:</label>
+    <input type="text" id="username" placeholder="Enter your Twitch username" required>
+
     <label for="code">Purchase Code:</label>
     <input type="text" id="code" placeholder="Enter your code" required>
 
@@ -62,26 +62,6 @@
     <input type="text" id="message" placeholder="Enter your message" required>
 
     <button type="submit">Submit Donation</button>
-  </form>
-
-  <!-- Admin Email Entry -->
-  <h2>Admin Login</h2>
-  <form id="emailEntry">
-    <label for="adminEmail">Enter Admin Email:</label>
-    <input type="email" id="adminEmail" placeholder="Enter your email" required>
-    <button type="submit">Login</button>
-  </form>
-
-  <!-- Manual Code Addition Form -->
-  <h2>Manual Code Addition</h2>
-  <form id="addCodeForm">
-    <label for="newCode">New Code:</label>
-    <input type="text" id="newCode" placeholder="Enter new code" required>
-
-    <label for="codeAmount">Amount:</label>
-    <input type="number" id="codeAmount" placeholder="Enter amount" required>
-
-    <button type="submit">Add Code</button>
   </form>
 
   <script>
@@ -99,12 +79,47 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const emailEntry = document.getElementById('emailEntry');
-    const addCodeForm = document.getElementById('addCodeForm');
+    // Donation submission
+    const donationForm = document.getElementById('donationForm');
+    donationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const adminEmail = "your_admin_email@example.com"; // Replace with your admin email
+      const username = document.getElementById('username').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const message = document.getElementById('message').value.trim();
 
-    // Show email entry form
+      if (!username || !code || !message) {
+        alert('Please fill in all fields.');
+        return;
+      }
+
+      try {
+        const codeRef = db.ref(`codes/${code}`);
+        const snapshot = await codeRef.get();
+
+        if (!snapshot.exists() || snapshot.val().used) {
+          alert('Invalid or already used code.');
+          return;
+        }
+
+        const donationsRef = db.ref('donations').push();
+        await donationsRef.set({
+          username,
+          code,
+          message,
+          timestamp: new Date().toISOString()
+        });
+
+        await codeRef.update({ used: true });
+
+        alert('Thank you for your donation!');
+        donationForm.reset();
+      } catch (error) {
+        console.error('Error saving donation:', error);
+        alert('Failed to submit your donation. Please try again.');
+      }
+
+        // Show email entry form
     emailEntry.style.display = "block";
 
     // Verify admin email and show the manual code form
@@ -141,45 +156,6 @@
       } catch (error) {
         console.error('Error adding code:', error);
         alert('Failed to add the code. Please try again.');
-      }
-    });
-
-    // Donation submission
-    const donationForm = document.getElementById('donationForm');
-    donationForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const code = document.getElementById('code').value.trim();
-      const message = document.getElementById('message').value.trim();
-
-      if (!code || !message) {
-        alert('Please enter a valid code and message.');
-        return;
-      }
-
-      try {
-        const codeRef = db.ref(`codes/${code}`);
-        const snapshot = await codeRef.get();
-
-        if (!snapshot.exists() || snapshot.val().used) {
-          alert('Invalid or already used code.');
-          return;
-        }
-
-        const donationsRef = db.ref('donations').push();
-        await donationsRef.set({
-          code,
-          message,
-          timestamp: new Date().toISOString()
-        });
-
-        await codeRef.update({ used: true });
-
-        alert('Thank you for your donation!');
-        donationForm.reset();
-      } catch (error) {
-        console.error('Error saving donation:', error);
-        alert('Failed to submit your donation. Please try again.');
       }
     });
   </script>
