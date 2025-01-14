@@ -46,6 +46,14 @@
     <button type="submit">Submit</button>
   </form>
 
+  <!-- Admin Login -->
+  <div id="adminLogin">
+    <h2>Admin Login</h2>
+    <label for="adminEmail">Enter Admin Email:</label><br>
+    <input type="email" id="adminEmail"><br>
+    <button id="loginBtn">Login</button>
+  </div>
+
   <!-- Admin Panel -->
   <div id="adminPanel" class="admin-panel">
     <h2>Admin Panel</h2>
@@ -75,10 +83,10 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Admin email (used to display admin panel)
+    // Admin email for access
     const adminEmail = "your-email@example.com";
 
-    // Form submission
+    // Donation form submission
     const form = document.getElementById('donationForm');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -123,20 +131,29 @@
       }
     });
 
-    // Admin bulk code generation
+    // Admin Login
+    const adminLogin = document.getElementById('adminLogin');
     const adminPanel = document.getElementById('adminPanel');
+    const loginBtn = document.getElementById('loginBtn');
+    const adminEmailInput = document.getElementById('adminEmail');
+
+    loginBtn.addEventListener('click', () => {
+      const enteredEmail = adminEmailInput.value.trim();
+      if (enteredEmail === adminEmail) {
+        alert('Admin access granted.');
+        adminLogin.style.display = 'none';
+        adminPanel.style.display = 'block';
+      } else {
+        alert('Invalid admin email.');
+      }
+    });
+
+    // Admin bulk code generation
     const bulkAmountInput = document.getElementById('bulkAmount');
     const bulkCountInput = document.getElementById('bulkCount');
     const generateCodesBtn = document.getElementById('generateCodes');
     const generatedCodesDisplay = document.getElementById('generatedCodes');
 
-    // Show admin panel if logged in as admin
-    const userEmail = prompt('Enter your email:');
-    if (userEmail === adminEmail) {
-      adminPanel.style.display = 'block';
-    }
-
-    // Generate bulk codes
     generateCodesBtn.addEventListener('click', async () => {
       const amount = parseFloat(bulkAmountInput.value);
       const count = parseInt(bulkCountInput.value);
