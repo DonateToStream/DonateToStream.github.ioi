@@ -7,7 +7,6 @@
   <!-- Firebase UMD scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -45,8 +44,8 @@
     button:hover {
       background-color: #45a049;
     }
-    #addCodeForm {
-      display: none; /* Hidden by default */
+    #addCodeForm, #emailEntry {
+      display: none; /* Initially hidden */
     }
   </style>
 </head>
@@ -54,6 +53,7 @@
   <h1>Donation Portal</h1>
   <p>Enter your purchase code and message to submit your donation!</p>
 
+  <!-- Donation Form -->
   <form id="donationForm">
     <label for="code">Purchase Code:</label>
     <input type="text" id="code" placeholder="Enter your code" required>
@@ -64,7 +64,16 @@
     <button type="submit">Submit Donation</button>
   </form>
 
-  <h2>Add a Manual Code</h2>
+  <!-- Admin Email Entry -->
+  <h2>Admin Login</h2>
+  <form id="emailEntry">
+    <label for="adminEmail">Enter Admin Email:</label>
+    <input type="email" id="adminEmail" placeholder="Enter your email" required>
+    <button type="submit">Login</button>
+  </form>
+
+  <!-- Manual Code Addition Form -->
+  <h2>Manual Code Addition</h2>
   <form id="addCodeForm">
     <label for="newCode">New Code:</label>
     <input type="text" id="newCode" placeholder="Enter new code" required>
@@ -89,17 +98,26 @@
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const auth = firebase.auth();
 
-    // Elements
+    const emailEntry = document.getElementById('emailEntry');
     const addCodeForm = document.getElementById('addCodeForm');
 
-    // Check authentication state
-    auth.onAuthStateChanged((user) => {
-      if (user && user.email === "admin4324@admin.com") {
+    const adminEmail = "your_admin_email@example.com"; // Replace with your admin email
+
+    // Show email entry form
+    emailEntry.style.display = "block";
+
+    // Verify admin email and show the manual code form
+    emailEntry.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const enteredEmail = document.getElementById('adminEmail').value.trim();
+
+      if (enteredEmail === adminEmail) {
+        alert('Admin access granted.');
+        emailEntry.style.display = "none";
         addCodeForm.style.display = "block";
       } else {
-        addCodeForm.style.display = "none";
+        alert('Access denied. Invalid email.');
       }
     });
 
