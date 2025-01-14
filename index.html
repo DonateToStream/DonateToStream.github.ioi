@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enter Code</title>
+</head>
+<body>
+  <h3>Enter Your Code</h3>
+  <form id="codeForm">
+    <input type="text" id="codeInput" placeholder="Enter your code" required>
+    <button type="submit">Submit</button>
+  </form>
+
+  <p id="responseMessage"></p>
+
+  <script>
+    document.getElementById("codeForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const code = document.getElementById("codeInput").value;
+
+      // Send the code to your Python backend
+      fetch('/sendToOBS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: code })
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("responseMessage").innerText = data.message;
+      })
+      .catch(error => {
+        document.getElementById("responseMessage").innerText = "Error: " + error;
+      });
+    });
+  </script>
+</body>
+</html>
