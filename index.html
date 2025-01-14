@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -48,6 +47,47 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Generate a unique code
+    function generateCode(length = 8) {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+    }
+
+    // Store generated code in the database
+    async function storeCode(code, amount) {
+      const codeRef = firebase.database().ref(`codes/${code}`);
+      await codeRef.set({
+        amount,
+        isUsed: false,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`Code ${code} stored successfully.`);
+    }
+
+    // Validate the entered code
+    async function validateCode(enteredCode) {
+      const codeRef = firebase.database().ref(`codes/${enteredCode}`);
+      const snapshot = await codeRef.get();
+      if (!snapshot.exists()) {
+        return { valid: false, message: "Invalid code." };
+      }
+      const codeData = snapshot.val();
+      if (codeData.isUsed) {
+        return { valid: false, message: "This code has already been used." };
+      }
+      return { valid: true, data: codeData };
+    }
+
+    // Mark code as used
+    async function markCodeAsUsed(enteredCode) {
+      const codeRef = firebase.database().ref(`codes/${enteredCode}`);
+      await codeRef.update({ isUsed: true });
+    }
+
     // Form submission
     const form = document.getElementById('donationForm');
     form.addEventListener('submit', async (e) => {
@@ -62,11 +102,23 @@
       }
 
       try {
+        // Validate the code
+        const validation = await validateCode(code);
+        if (!validation.valid) {
+          alert(validation.message);
+          return;
+        }
+
+        // Save the donation
         const donationRef = firebase.database().ref(`donations/${code}`);
         await donationRef.set({
           message,
           timestamp: new Date().toISOString()
         });
+
+        // Mark the code as used
+        await markCodeAsUsed(code);
+
         alert('Thank you for your donation!');
         form.reset();
       } catch (error) {
@@ -74,6 +126,14 @@
         alert('Failed to submit your donation. Please try again.');
       }
     });
+
+    // Example: Generate and store a few test codes
+    (async () => {
+      for (let i = 0; i < 5; i++) {
+        const code = generateCode();
+        await storeCode(code, Math.floor(Math.random() * 100) + 1); // Random amount
+      }
+    })();
   </script>
 </body>
 </html>
