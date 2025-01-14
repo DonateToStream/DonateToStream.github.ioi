@@ -4,83 +4,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Donation Portal</title>
-  <!-- Firebase UMD scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      background: #f9f9f9;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    form, .admin-section {
-      max-width: 400px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
     }
     input, button {
-      width: 100%;
-      padding: 10px;
       margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      padding: 10px;
+      font-size: 16px;
     }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    .hidden {
+    .admin-panel {
       display: none;
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .admin-panel h2 {
+      margin-top: 0;
     }
   </style>
 </head>
 <body>
   <h1>Donation Portal</h1>
-  <p>Enter your Twitch username, purchase code, and message to submit your donation!</p>
+  <p>Enter your purchase code and message to submit your donation!</p>
 
-  <!-- Donation Form -->
   <form id="donationForm">
-    <label for="username">Twitch Username:</label>
-    <input type="text" id="username" placeholder="Enter your Twitch username" required>
+    <label for="username">Twitch Username:</label><br>
+    <input type="text" id="username" required><br>
 
-    <label for="code">Purchase Code:</label>
-    <input type="text" id="code" placeholder="Enter your code" required>
+    <label for="code">Purchase Code:</label><br>
+    <input type="text" id="code" required><br>
 
-    <label for="message">Message:</label>
-    <input type="text" id="message" placeholder="Enter your message" required>
+    <label for="message">Message:</label><br>
+    <input type="text" id="message" required><br>
 
-    <button type="submit">Submit Donation</button>
+    <button type="submit">Submit</button>
   </form>
 
-  <!-- Admin Section -->
-  <div id="adminSection" class="admin-section hidden">
+  <!-- Admin Panel -->
+  <div id="adminPanel" class="admin-panel">
     <h2>Admin Panel</h2>
-    <form id="addCodeForm">
-      <label for="newCode">New Code:</label>
-      <input type="text" id="newCode" placeholder="Enter new code" required>
+    <h3>Generate Bulk Codes</h3>
+    <label for="bulkAmount">Amount for Codes:</label><br>
+    <input type="number" id="bulkAmount" required><br>
 
-      <label for="amount">Amount:</label>
-      <input type="number" id="amount" placeholder="Enter amount" required>
+    <label for="bulkCount">Number of Codes:</label><br>
+    <input type="number" id="bulkCount" required><br>
 
-      <button type="submit">Add Code</button>
-    </form>
+    <button id="generateCodes">Generate Codes</button>
+    <p id="generatedCodes"></p>
   </div>
 
   <script>
@@ -98,18 +75,12 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Admin email for managing codes
-    const adminEmail = "admin@example.com";
+    // Admin email (used to display admin panel)
+    const adminEmail = "your-email@example.com";
 
-    // Show admin panel based on entered email
-    const userEmail = prompt("Enter your email:");
-    if (userEmail === adminEmail) {
-      document.getElementById("adminSection").classList.remove("hidden");
-    }
-
-    // Donation submission
-    const donationForm = document.getElementById('donationForm');
-    donationForm.addEventListener('submit', async (e) => {
+    // Form submission
+    const form = document.getElementById('donationForm');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const username = document.getElementById('username').value.trim();
@@ -123,64 +94,72 @@
 
       try {
         const codeRef = db.ref(`codes/${code}`);
-        const snapshot = await codeRef.get();
+        const codeSnapshot = await codeRef.get();
 
-        if (!snapshot.exists() || snapshot.val().used) {
+        if (!codeSnapshot.exists() || codeSnapshot.val().used) {
           alert('Invalid or already used code.');
           return;
         }
 
-        const donationsRef = db.ref('donations').push();
-        await donationsRef.set({
+        const amount = codeSnapshot.val().amount;
+
+        // Save the donation
+        await db.ref(`donations/${code}`).set({
           username,
           code,
           message,
+          amount,
           timestamp: new Date().toISOString()
         });
 
+        // Mark the code as used
         await codeRef.update({ used: true });
 
-        alert('Thank you for your donation!');
-        donationForm.reset();
+        alert(`Thank you for your donation of $${amount}!`);
+        form.reset();
       } catch (error) {
-        console.error('Error saving donation:', error);
-        alert('Failed to submit your donation. Please try again.');
+        console.error('Error processing donation:', error);
+        alert('Failed to process your donation. Please try again.');
       }
     });
 
-    // Add new code in admin section
-    const addCodeForm = document.getElementById('addCodeForm');
-    addCodeForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // Admin bulk code generation
+    const adminPanel = document.getElementById('adminPanel');
+    const bulkAmountInput = document.getElementById('bulkAmount');
+    const bulkCountInput = document.getElementById('bulkCount');
+    const generateCodesBtn = document.getElementById('generateCodes');
+    const generatedCodesDisplay = document.getElementById('generatedCodes');
 
-      const newCode = document.getElementById('newCode').value.trim();
-      const amount = document.getElementById('amount').value.trim();
+    // Show admin panel if logged in as admin
+    const userEmail = prompt('Enter your email:');
+    if (userEmail === adminEmail) {
+      adminPanel.style.display = 'block';
+    }
 
-      if (!newCode || !amount || isNaN(amount)) {
-        alert('Please enter a valid code and amount.');
+    // Generate bulk codes
+    generateCodesBtn.addEventListener('click', async () => {
+      const amount = parseFloat(bulkAmountInput.value);
+      const count = parseInt(bulkCountInput.value);
+
+      if (isNaN(amount) || isNaN(count) || count <= 0 || amount <= 0) {
+        alert('Please enter valid amounts.');
         return;
       }
 
-      try {
-        const codeRef = db.ref(`codes/${newCode}`);
-        const snapshot = await codeRef.get();
+      const codes = [];
+      for (let i = 0; i < count; i++) {
+        const newCode = `CODE${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+        codes.push(newCode);
 
-        if (snapshot.exists()) {
-          alert('This code already exists.');
-          return;
-        }
-
-        await codeRef.set({
-          amount: parseFloat(amount),
+        // Save each code in Firebase
+        await db.ref(`codes/${newCode}`).set({
+          amount,
           used: false
         });
-
-        alert(`Code "${newCode}" added successfully!`);
-        addCodeForm.reset();
-      } catch (error) {
-        console.error('Error adding code:', error);
-        alert('Failed to add the code. Please try again.');
       }
+
+      generatedCodesDisplay.textContent = `Generated Codes: ${codes.join(', ')}`;
+      alert('Bulk codes generated successfully.');
     });
   </script>
 </body>
