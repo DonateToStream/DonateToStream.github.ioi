@@ -45,6 +45,17 @@
       font-size: 16px;
       cursor: pointer;
     }
+    .admin-panel {
+      margin-top: 40px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    .code-list {
+      margin-top: 10px;
+      font-size: 14px;
+      word-break: break-word;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -52,8 +63,8 @@
     <h1>Donation Portal</h1>
   </header>
   <div class="container">
-    <p>when you buy one of the products you will use the code you get from it to send your message!</p>
-    <p>PLEASE let me know if you have issues with this you can add me and message me on tiktok</p>
+    <p>When you buy one of the products, you will use the code you get from it to send your message!</p>
+    <p>PLEASE let me know if you have issues. You can add me and message me on TikTok.</p>
     <a href="https://www.tiktok.com/@xxscriptsxx">MY TIKTOK</a>
     <form id="donationForm">
       <input type="text" id="username" placeholder="Twitch Username" required>
@@ -64,14 +75,29 @@
     <div class="donation-products">
       <h2>Choose a Donation Amount</h2>
       <button
-  data-sellix-product="6786ebe648c6f"
-  type="submit"
-  alt="Buy Now with sellix.io"
->
-  $5 dollar donation
-</button>
+        data-sellix-product="6786ebe648c6f"
+        type="submit"
+        alt="Buy Now with sellix.io"
+      >
+        $5 dollar donation
+      </button>
       <button data-sellix-product="YOUR_PRODUCT_ID_10" type="submit" alt="Buy Now with sellix.io">$10 Donation</button>
       <button data-sellix-product="YOUR_PRODUCT_ID_20" type="submit" alt="Buy Now with sellix.io">$20 Donation</button>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel">
+      <h3>Admin Panel</h3>
+      <p>Create bulk codes (separated by commas):</p>
+      <form id="adminForm">
+        <input type="text" id="bulkCodes" placeholder="Enter codes separated by commas" required>
+        <input type="number" id="codeAmount" placeholder="Amount for each code" required>
+        <button type="submit">Generate Codes</button>
+      </form>
+      <div class="code-list">
+        <strong>Generated Codes:</strong>
+        <div id="generatedCodes">None</div>
+      </div>
     </div>
   </div>
   <script>
@@ -135,6 +161,38 @@
       } catch (error) {
         console.error('Error processing donation:', error);
         alert('Failed to process your donation. Please try again.');
+      }
+    });
+
+    // Admin Form Submission
+    const adminForm = document.getElementById('adminForm');
+    const generatedCodesDiv = document.getElementById('generatedCodes');
+    adminForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bulkCodes = document.getElementById('bulkCodes').value.trim();
+      const codeAmount = parseInt(document.getElementById('codeAmount').value);
+
+      if (!bulkCodes || isNaN(codeAmount)) {
+        alert('Please provide valid codes and an amount.');
+        return;
+      }
+
+      const codesArray = bulkCodes.split(',').map((code) => code.trim());
+      const updates = {};
+
+      codesArray.forEach((code) => {
+        updates[`codes/${code}`] = { amount: codeAmount, used: false };
+      });
+
+      try {
+        await db.ref().update(updates);
+
+        generatedCodesDiv.innerText = codesArray.join(', ');
+        alert('Codes generated successfully!');
+        adminForm.reset();
+      } catch (error) {
+        console.error('Error generating codes:', error);
+        alert('Failed to generate codes. Please try again.');
       }
     });
   </script>
