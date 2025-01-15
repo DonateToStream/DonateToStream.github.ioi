@@ -9,25 +9,23 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
       display: flex;
-      gap: 20px;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    #content {
+      display: flex;
+      flex: 1;
+      padding: 20px;
     }
     #mainContent {
       flex: 3;
+      margin-right: 20px;
     }
     #sidebar {
       flex: 1;
-      border-left: 1px solid #ddd;
-      padding-left: 20px;
-    }
-    input, button {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-      width: 100%;
-    }
-    #sidebar {
       background: #f9f9f9;
       border-radius: 5px;
       padding: 15px;
@@ -56,35 +54,79 @@
     .amount-list li button:hover {
       background: #0056b3;
     }
+    #donationForm {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    #donationForm input, #donationForm button {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+    }
+    #adminPanel {
+      display: none;
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    #adminPanel h2 {
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
-  <div id="mainContent">
-    <h1>Donation Portal</h1>
-    <p>Enter your purchase code and message to submit your donation!</p>
+  <div id="content">
+    <div id="mainContent">
+      <h1>Donation Portal</h1>
+      <p>Select a donation amount from the sidebar, then submit your code and message below.</p>
+      <div id="donationForm">
+        <h2>Submit Your Donation</h2>
+        <form>
+          <label for="username">Twitch Username:</label><br>
+          <input type="text" id="username" required><br>
 
-    <form id="donationForm">
-      <label for="username">Twitch Username:</label><br>
-      <input type="text" id="username" required><br>
+          <label for="code">Purchase Code:</label><br>
+          <input type="text" id="code" required><br>
 
-      <label for="code">Purchase Code:</label><br>
-      <input type="text" id="code" required><br>
+          <label for="message">Message:</label><br>
+          <input type="text" id="message" required><br>
 
-      <label for="amount">Donation Amount:</label><br>
-      <input type="number" id="amount" required><br>
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
 
-      <label for="message">Message:</label><br>
-      <input type="text" id="message" required><br>
-
-      <button type="submit">Submit</button>
-    </form>
+    <div id="sidebar">
+      <h2>Select Donation Amount</h2>
+      <ul class="amount-list">
+        <!-- Sidebar buttons generated dynamically -->
+      </ul>
+    </div>
   </div>
 
-  <div id="sidebar">
-    <h2>Select Donation Amount</h2>
-    <ul class="amount-list">
-      <!-- Generate buttons for amounts dynamically -->
-    </ul>
+  <div id="adminLogin">
+    <h2>Admin Login</h2>
+    <label for="adminEmail">Enter Admin Email:</label><br>
+    <input type="email" id="adminEmail"><br>
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <div id="adminPanel">
+    <h2>Admin Panel</h2>
+    <h3>Generate Bulk Codes</h3>
+    <label for="bulkAmount">Amount for Codes:</label><br>
+    <input type="number" id="bulkAmount" required><br>
+
+    <label for="bulkCount">Number of Codes:</label><br>
+    <input type="number" id="bulkCount" required><br>
+
+    <button id="generateCodes">Generate Codes</button>
+    <p id="generatedCodes"></p>
   </div>
 
   <script>
@@ -104,7 +146,7 @@
 
     // Sidebar Donation Amounts with Sellix Integration
     const amountList = document.querySelector('.amount-list');
-    const sellixBaseUrl = "https://sellix.io/product/"; // Base URL for Sellix product pages
+    const sellixBaseUrl = "https://sellix.io/product/";
 
     const donationProducts = {
       1: "product-id-1",
@@ -145,6 +187,24 @@
       listItem.appendChild(button);
       amountList.appendChild(listItem);
     }
+
+    // Admin Login
+    const adminLogin = document.getElementById('adminLogin');
+    const adminPanel = document.getElementById('adminPanel');
+    const loginBtn = document.getElementById('loginBtn');
+    const adminEmailInput = document.getElementById('adminEmail');
+    const adminEmail = "your-email@example.com";
+
+    loginBtn.addEventListener('click', () => {
+      const enteredEmail = adminEmailInput.value.trim();
+      if (enteredEmail === adminEmail) {
+        alert('Admin access granted.');
+        adminLogin.style.display = 'none';
+        adminPanel.style.display = 'block';
+      } else {
+        alert('Invalid admin email.');
+      }
+    });
   </script>
 </body>
 </html>
