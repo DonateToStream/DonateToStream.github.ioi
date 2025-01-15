@@ -13,35 +13,43 @@
       padding: 0;
       display: flex;
       flex-direction: column;
+      align-items: center;
       min-height: 100vh;
     }
-    #content {
-      display: flex;
-      flex: 1;
-      padding: 20px;
+    h1 {
+      margin-top: 20px;
     }
-    #mainContent {
-      flex: 3;
-      margin-right: 20px;
-    }
-    #sidebar {
-      flex: 1;
+    #formSection {
+      margin: 40px 0;
+      width: 100%;
+      max-width: 600px;
       background: #f9f9f9;
-      border-radius: 5px;
-      padding: 15px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
-    #sidebar h2 {
-      margin-top: 0;
+    #formSection input, #formSection button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #donationAmounts {
+      width: 100%;
+      max-width: 900px;
+      margin: 40px 0;
+    }
+    #donationAmounts h2 {
+      margin-bottom: 20px;
     }
     .amount-list {
-      list-style: none;
-      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 10px;
     }
-    .amount-list li {
-      margin: 5px 0;
-    }
-    .amount-list li button {
-      width: 100%;
+    .amount-list button {
+      flex: 1 1 calc(25% - 10px);
       background: #007bff;
       color: white;
       border: none;
@@ -50,83 +58,46 @@
       cursor: pointer;
       border-radius: 5px;
       transition: background-color 0.3s;
+      text-align: center;
     }
-    .amount-list li button:hover {
+    .amount-list button:hover {
       background: #0056b3;
     }
-    #donationForm {
-      background: #f9f9f9;
-      padding: 20px;
-      border-radius: 5px;
-      margin-top: 20px;
-    }
-    #donationForm input, #donationForm button {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
+    iframe {
       width: 100%;
-    }
-    #adminPanel {
-      display: none;
+      height: 500px;
+      border: none;
       margin-top: 20px;
-      border: 1px solid #ddd;
-      padding: 15px;
-      border-radius: 5px;
-      background-color: #f9f9f9;
-    }
-    #adminPanel h2 {
-      margin-top: 0;
     }
   </style>
 </head>
 <body>
-  <div id="content">
-    <div id="mainContent">
-      <h1>Donation Portal</h1>
-      <p>Select a donation amount from the sidebar, then submit your code and message below.</p>
-      <div id="donationForm">
-        <h2>Submit Your Donation</h2>
-        <form>
-          <label for="username">Twitch Username:</label><br>
-          <input type="text" id="username" required><br>
+  <h1>Donation Portal</h1>
 
-          <label for="code">Purchase Code:</label><br>
-          <input type="text" id="code" required><br>
+  <!-- Form Section -->
+  <div id="formSection">
+    <h2>Submit Your Donation</h2>
+    <form id="donationForm">
+      <label for="username">Twitch Username:</label><br>
+      <input type="text" id="username" required><br>
 
-          <label for="message">Message:</label><br>
-          <input type="text" id="message" required><br>
+      <label for="code">Purchase Code:</label><br>
+      <input type="text" id="code" required><br>
 
-          <button type="submit">Submit</button>
-        </form>
-      </div>
-    </div>
+      <label for="message">Message:</label><br>
+      <input type="text" id="message" required><br>
 
-    <div id="sidebar">
-      <h2>Select Donation Amount</h2>
-      <ul class="amount-list">
-        <!-- Sidebar buttons generated dynamically -->
-      </ul>
-    </div>
+      <button type="submit">Submit</button>
+    </form>
   </div>
 
-  <div id="adminLogin">
-    <h2>Admin Login</h2>
-    <label for="adminEmail">Enter Admin Email:</label><br>
-    <input type="email" id="adminEmail"><br>
-    <button id="loginBtn">Login</button>
-  </div>
-
-  <div id="adminPanel">
-    <h2>Admin Panel</h2>
-    <h3>Generate Bulk Codes</h3>
-    <label for="bulkAmount">Amount for Codes:</label><br>
-    <input type="number" id="bulkAmount" required><br>
-
-    <label for="bulkCount">Number of Codes:</label><br>
-    <input type="number" id="bulkCount" required><br>
-
-    <button id="generateCodes">Generate Codes</button>
-    <p id="generatedCodes"></p>
+  <!-- Donation Amounts Section -->
+  <div id="donationAmounts">
+    <h2>Select Donation Amount</h2>
+    <div class="amount-list">
+      <!-- Buttons generated dynamically -->
+    </div>
+    <iframe id="sellixFrame" src="" style="display: none;"></iframe>
   </div>
 
   <script>
@@ -146,6 +117,7 @@
 
     // Sidebar Donation Amounts with Sellix Integration
     const amountList = document.querySelector('.amount-list');
+    const sellixFrame = document.getElementById('sellixFrame');
     const sellixBaseUrl = "https://sellix.io/product/";
 
     const donationProducts = {
@@ -173,36 +145,62 @@
 
     // Generate Sidebar Buttons
     for (let i = 1; i <= 20; i++) {
-      const listItem = document.createElement('li');
       const button = document.createElement('button');
       button.textContent = `$${i}`;
       button.addEventListener('click', () => {
         const productId = donationProducts[i];
         if (productId) {
-          window.open(`${sellixBaseUrl}${productId}`, "_blank");
+          sellixFrame.src = `${sellixBaseUrl}${productId}`;
+          sellixFrame.style.display = 'block';
         } else {
           alert("No product linked for this amount.");
         }
       });
-      listItem.appendChild(button);
-      amountList.appendChild(listItem);
+      amountList.appendChild(button);
     }
 
-    // Admin Login
-    const adminLogin = document.getElementById('adminLogin');
-    const adminPanel = document.getElementById('adminPanel');
-    const loginBtn = document.getElementById('loginBtn');
-    const adminEmailInput = document.getElementById('adminEmail');
-    const adminEmail = "your-email@example.com";
+    // Handle Donation Form Submission
+    const form = document.getElementById('donationForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    loginBtn.addEventListener('click', () => {
-      const enteredEmail = adminEmailInput.value.trim();
-      if (enteredEmail === adminEmail) {
-        alert('Admin access granted.');
-        adminLogin.style.display = 'none';
-        adminPanel.style.display = 'block';
-      } else {
-        alert('Invalid admin email.');
+      const username = document.getElementById('username').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      if (!username || !code || !message) {
+        alert('Please fill in all fields.');
+        return;
+      }
+
+      try {
+        const codeRef = db.ref(`codes/${code}`);
+        const codeSnapshot = await codeRef.get();
+
+        if (!codeSnapshot.exists() || codeSnapshot.val().used) {
+          alert('Invalid or already used code.');
+          return;
+        }
+
+        const amount = codeSnapshot.val().amount;
+
+        // Save the donation
+        await db.ref(`donations/${code}`).set({
+          username,
+          code,
+          message,
+          amount,
+          timestamp: new Date().toISOString()
+        });
+
+        // Mark the code as used
+        await codeRef.update({ used: true });
+
+        alert(`Thank you for your donation of $${amount}!`);
+        form.reset();
+      } catch (error) {
+        console.error('Error processing donation:', error);
+        alert('Failed to process your donation. Please try again.');
       }
     });
   </script>
