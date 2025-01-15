@@ -6,6 +6,7 @@
   <title>Donation Portal</title>
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.sellix.io/static/js/embed.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,7 +26,7 @@
       font-size: 20px;
       text-align: center;
     }
-    form, .admin-panel {
+    form {
       margin-top: 20px;
     }
     input, button {
@@ -34,6 +35,15 @@
       font-size: 16px;
       width: 100%;
       box-sizing: border-box;
+    }
+    .donation-products {
+      margin-top: 40px;
+    }
+    .donation-products button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
     .admin-panel {
       margin-top: 40px;
@@ -46,9 +56,6 @@
       word-break: break-word;
       text-align: left;
     }
-    #adminPanel {
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -56,18 +63,34 @@
     <h1>Donation Portal</h1>
   </header>
   <div class="container">
-    <p>Admin Login to Generate Donation Codes</p>
-    <form id="adminLoginForm">
-      <input type="text" id="adminUsername" placeholder="Admin Username" required>
-      <input type="password" id="adminPassword" placeholder="Admin Password" required>
-      <button type="submit">Login</button>
+    <p>When you buy one of the products, you will use the code you get from it to send your message!</p>
+    <p>PLEASE let me know if you have issues. You can add me and message me on TikTok.</p>
+    <a href="https://www.tiktok.com/@xxscriptsxx">MY TIKTOK</a>
+    <form id="donationForm">
+      <input type="text" id="username" placeholder="Twitch Username" required>
+      <input type="text" id="code" placeholder="Purchase Code" required>
+      <input type="text" id="message" placeholder="Message" required>
+      <button type="submit">Submit Donation</button>
     </form>
+    <div class="donation-products">
+      <h2>Choose a Donation Amount</h2>
+      <button
+        data-sellix-product="6786ebe648c6f"
+        type="submit"
+        alt="Buy Now with sellix.io"
+      >
+        $5 dollar donation
+      </button>
+      <button data-sellix-product="YOUR_PRODUCT_ID_10" type="submit" alt="Buy Now with sellix.io">$10 Donation</button>
+      <button data-sellix-product="YOUR_PRODUCT_ID_20" type="submit" alt="Buy Now with sellix.io">$20 Donation</button>
+    </div>
 
-    <div id="adminPanel" class="admin-panel">
+    <!-- Admin Panel -->
+    <div class="admin-panel">
       <h3>Admin Panel</h3>
-      <p>Generate random codes for donations:</p>
+      <p>Create bulk codes (separated by commas):</p>
       <form id="adminForm">
-        <input type="number" id="numberOfCodes" placeholder="Number of codes to generate" required>
+        <input type="text" id="bulkCodes" placeholder="Enter codes separated by commas" required>
         <input type="number" id="codeAmount" placeholder="Amount for each code" required>
         <button type="submit">Generate Codes</button>
       </form>
@@ -92,58 +115,79 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Admin Login
-    const adminLoginForm = document.getElementById('adminLoginForm');
-    const adminPanel = document.getElementById('adminPanel');
-    const ADMIN_CREDENTIALS = {
-      username: 'admin',
-      password: 'securepassword123'
-    };
-
-    adminLoginForm.addEventListener('submit', (e) => {
+    // Donation Form Submission
+    const form = document.getElementById('donationForm');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('adminUsername').value.trim();
-      const password = document.getElementById('adminPassword').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const message = document.getElementById('message').value.trim();
 
-      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        alert('Admin login successful!');
-        adminLoginForm.style.display = 'none';
-        adminPanel.style.display = 'block';
-      } else {
-        alert('Invalid admin credentials!');
-      }
-    });
-
-    // Admin Form Submission (Generate Codes)
-    const adminForm = document.getElementById('adminForm');
-    const generatedCodesDiv = document.getElementById('generatedCodes');
-
-    adminForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const numberOfCodes = parseInt(document.getElementById('numberOfCodes').value);
-      const codeAmount = parseInt(document.getElementById('codeAmount').value);
-
-      if (isNaN(numberOfCodes) || isNaN(codeAmount) || numberOfCodes <= 0) {
-        alert('Please provide valid inputs.');
+      if (!username || !code || !message) {
+        alert('Please fill in all fields.');
         return;
       }
 
-      const generateRandomCode = () => {
-        return `CODE-${Math.random().toString(36).substring(2, 8)}-${Math.random().toString(36).substring(2, 8)}-${Math.random().toString(36).substring(2, 8)}`;
-      };
+      try {
+        const codeRef = db.ref(`codes/${code}`);
+        const codeSnapshot = await codeRef.get();
 
-      const updates = {};
-      const codesArray = [];
+        if (!codeSnapshot.exists() || codeSnapshot.val().used) {
+          alert('Invalid or already used code.');
+          return;
+        }
 
-      for (let i = 0; i < numberOfCodes; i++) {
-        const randomCode = generateRandomCode();
-        updates[`codes/${randomCode}`] = { amount: codeAmount, used: false };
-        codesArray.push(randomCode);
+        const amount = codeSnapshot.val().amount;
+
+        // Save the donation
+        const donationData = {
+          username,
+          code,
+          message,
+          amount,
+          timestamp: new Date().toISOString()
+        };
+
+        await db.ref(`donations/${code}`).set(donationData);
+
+        // Mark the code as used
+        await codeRef.update({ used: true });
+
+        // Update OBS donation viewer
+        await db.ref('latestDonation').set(donationData);
+
+        alert(`Thank you for your donation of $${amount}!`);
+        form.reset();
+      } catch (error) {
+        console.error('Error processing donation:', error);
+        alert('Failed to process your donation. Please try again.');
       }
+    });
+
+    // Admin Form Submission
+    const adminForm = document.getElementById('adminForm');
+    const generatedCodesDiv = document.getElementById('generatedCodes');
+    adminForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bulkCodes = document.getElementById('bulkCodes').value.trim();
+      const codeAmount = parseInt(document.getElementById('codeAmount').value);
+
+      if (!bulkCodes || isNaN(codeAmount)) {
+        alert('Please provide valid codes and an amount.');
+        return;
+      }
+
+      const codesArray = bulkCodes.split(',').map((code) => code.trim());
+      const updates = {};
+
+      codesArray.forEach((code) => {
+        updates[`codes/${code}`] = { amount: codeAmount, used: false };
+      });
 
       try {
         await db.ref().update(updates);
-        generatedCodesDiv.innerText = codesArray.join('\n');
+
+        generatedCodesDiv.innerText = codesArray.join(', ');
         alert('Codes generated successfully!');
         adminForm.reset();
       } catch (error) {
