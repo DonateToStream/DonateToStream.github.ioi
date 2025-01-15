@@ -11,97 +11,69 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
     }
-    h1 {
+    header {
+      padding: 20px;
+      background: #f4f4f4;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .container {
+      padding: 20px;
+      max-width: 600px;
+      margin: 20px auto;
+      text-align: center;
+    }
+    form {
       margin-top: 20px;
     }
-    #formSection {
-      margin: 40px 0;
-      width: 100%;
-      max-width: 600px;
-      background: #f9f9f9;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    #formSection input, #formSection button {
-      width: 100%;
+    input, button {
       margin: 10px 0;
       padding: 10px;
       font-size: 16px;
-    }
-    #donationAmounts {
       width: 100%;
-      max-width: 900px;
-      margin: 40px 0;
+      box-sizing: border-box;
     }
-    #donationAmounts h2 {
-      margin-bottom: 20px;
+    .donation-products {
+      margin-top: 40px;
     }
-    .amount-list {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-around;
-      gap: 10px;
-    }
-    .amount-list button {
-      flex: 1 1 calc(25% - 10px);
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px;
+    .donation-products button {
+      margin: 5px;
+      padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
-      border-radius: 5px;
-      transition: background-color 0.3s;
-      text-align: center;
-    }
-    .amount-list button:hover {
-      background: #0056b3;
     }
     iframe {
       width: 100%;
-      height: 500px;
+      height: 400px;
       border: none;
       margin-top: 20px;
     }
   </style>
+  <!-- Sellix API Integration -->
+  <script async src="https://cdn.sellix.io/static/js/embed.js"></script>
 </head>
 <body>
-  <h1>Donation Portal</h1>
-
-  <!-- Form Section -->
-  <div id="formSection">
-    <h2>Submit Your Donation</h2>
+  <header>
+    <h1>Donation Portal</h1>
+  </header>
+  <div class="container">
+    <p>Enter your purchase code and message to submit your donation!</p>
     <form id="donationForm">
-      <label for="username">Twitch Username:</label><br>
-      <input type="text" id="username" required><br>
-
-      <label for="code">Purchase Code:</label><br>
-      <input type="text" id="code" required><br>
-
-      <label for="message">Message:</label><br>
-      <input type="text" id="message" required><br>
-
-      <button type="submit">Submit</button>
+      <input type="text" id="username" placeholder="Twitch Username" required>
+      <input type="text" id="code" placeholder="Purchase Code" required>
+      <input type="text" id="message" placeholder="Message" required>
+      <button type="submit">Submit Donation</button>
     </form>
-  </div>
-
-  <!-- Donation Amounts Section -->
-  <div id="donationAmounts">
-    <h2>Select Donation Amount</h2>
-    <div class="amount-list">
-      <!-- Buttons generated dynamically -->
+    <div class="donation-products">
+      <h2>Choose a Donation Amount</h2>
+      <button data-sellix-product="6786ebe648c6f" type="submit" alt="Buy Now with sellix.io">$5 Donation</button>
+      <button data-sellix-product="YOUR_PRODUCT_ID_10" type="submit" alt="Buy Now with sellix.io">$10 Donation</button>
+      <button data-sellix-product="YOUR_PRODUCT_ID_20" type="submit" alt="Buy Now with sellix.io">$20 Donation</button>
     </div>
-    <iframe id="sellixFrame" src="" style="display: none;"></iframe>
   </div>
-
   <script>
-    // Firebase configuration
+    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyDsp-t5t7djT1fBxpmIg96DPDVuQqTeslY",
       authDomain: "donations-606e1.firebaseapp.com",
@@ -115,55 +87,10 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Sidebar Donation Amounts with Sellix Integration
-    const amountList = document.querySelector('.amount-list');
-    const sellixFrame = document.getElementById('sellixFrame');
-    const sellixBaseUrl = "https://sellix.io/product/";
-
-    const donationProducts = {
-      1: "product-id-1",
-      2: "product-id-2",
-      3: "product-id-3",
-      4: "product-id-4",
-      5: "product-id-5",
-      6: "product-id-6",
-      7: "product-id-7",
-      8: "product-id-8",
-      9: "product-id-9",
-      10: "product-id-10",
-      11: "product-id-11",
-      12: "product-id-12",
-      13: "product-id-13",
-      14: "product-id-14",
-      15: "product-id-15",
-      16: "product-id-16",
-      17: "product-id-17",
-      18: "product-id-18",
-      19: "product-id-19",
-      20: "product-id-20"
-    };
-
-    // Generate Sidebar Buttons
-    for (let i = 1; i <= 20; i++) {
-      const button = document.createElement('button');
-      button.textContent = `$${i}`;
-      button.addEventListener('click', () => {
-        const productId = donationProducts[i];
-        if (productId) {
-          sellixFrame.src = `${sellixBaseUrl}${productId}`;
-          sellixFrame.style.display = 'block';
-        } else {
-          alert("No product linked for this amount.");
-        }
-      });
-      amountList.appendChild(button);
-    }
-
-    // Handle Donation Form Submission
+    // Donation Form Submission
     const form = document.getElementById('donationForm');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const username = document.getElementById('username').value.trim();
       const code = document.getElementById('code').value.trim();
       const message = document.getElementById('message').value.trim();
@@ -183,8 +110,6 @@
         }
 
         const amount = codeSnapshot.val().amount;
-
-        // Save the donation
         await db.ref(`donations/${code}`).set({
           username,
           code,
@@ -193,9 +118,7 @@
           timestamp: new Date().toISOString()
         });
 
-        // Mark the code as used
         await codeRef.update({ used: true });
-
         alert(`Thank you for your donation of $${amount}!`);
         form.reset();
       } catch (error) {
